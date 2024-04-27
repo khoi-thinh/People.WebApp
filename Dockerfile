@@ -5,7 +5,6 @@ EXPOSE 5000
 ENV ASPNETCORE_URLS=http://+:5000
 
 USER app
-RUN echo $BUILDPLATFORM
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG configuration=Release
 WORKDIR /src
