@@ -1,0 +1,80 @@
+name: Deploy (Release / Rollback)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Git tag version (e.g. v1.1)"
+        required: true
+        type: string
+
+env:
+  IMAGE_NAME: people.webapp
+  ACR_LOGIN_SERVER: khoitokyo.azurecr.io
+  RG_NAME: rg-aks-people
+  CLUSTER_NAME: aks-people
+  AKS_POOL_NODE_NAME: aks-people-agentpool
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo (with tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag
+        run: |
+          git fetch --tags
+          git rev-parse ${{ github.event.inputs.version }}
+
+      - name: Get commit SHA
+        run: |
+          SHA=$(git rev-list -n 1 ${{ github.event.inputs.version }})
+          echo "SHA=$SHA" >> $GITHUB_ENV
+          echo "Resolved SHA: $SHA"       
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Verify image exists in ACR
+        run: |
+          az acr repository show-tags \
+            -n khoitokyo \
+            --repository $IMAGE_NAME \
+            --query "[?@=='$SHA']" -o tsv | grep $SHA  
+            
+      - name: Get AKS credentials
+        run: az aks get-credentials -g $RG_NAME -n $CLUSTER_NAME
+
+      - name: Get Managed Identity
+        run: |
+          MANAGED_CLIENT_ID=$(az identity list --query "[?contains(name,'$AKS_POOL_NODE_NAME')].clientId" -o tsv)
+          echo "MANAGED_CLIENT_ID=$MANAGED_CLIENT_ID" >> $GITHUB_ENV
+
+      - name: Set image
+        run: |
+          IMAGE=$ACR_LOGIN_SERVER/$IMAGE_NAME:$SHA
+          echo "Deploying image: $IMAGE"
+
+          kubectl set image deployment/people-webapp-deployment \
+            people-webapp=$IMAGE
+
+      - name: Set Managed Identity env
+        run: |
+          kubectl set env deployment/people-webapp-deployment \
+            ManagedIdentityClientId=$MANAGED_CLIENT_ID
+
+      - name: Annotate deployment
+        run: |
+          kubectl annotate deployment people-webapp-deployment \
+            release-version=${{ github.event.inputs.version }} \
+            commit-sha=$SHA --overwrite
+
+      - name: rollout
+        run: |
+          kubectl rollout status deployment/people-webapp-deployment

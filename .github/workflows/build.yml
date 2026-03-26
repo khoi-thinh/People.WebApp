@@ -1,0 +1,30 @@
+name: Build Image
+
+on:
+  push:
+    branches:
+      - ci-cd
+
+env:
+  IMAGE_NAME: people.webapp
+  ACR_NAME: khoitokyo
+  ACR_LOGIN_SERVER: khoitokyo.azurecr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - run: az acr login -n $ACR_NAME
+
+      - name: Build & Push (SHA tag)
+        run: |
+          IMAGE=$ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE

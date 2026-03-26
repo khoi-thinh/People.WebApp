@@ -1,11 +1,19 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using People.WebApp.Data;
+using Azure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Azure Key Vault
+builder.Configuration.AddAzureKeyVault(
+    new Uri($"https://{builder.Configuration["KeyVaultName"]}.vault.azure.net/"),
+    new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+    {
+        ManagedIdentityClientId = builder.Configuration["ManagedIdentityClientId"]
+    }));
 
 // PeopleDbContext
 builder.Services.AddDbContext<PeopleDbContext>(options =>
@@ -16,8 +24,12 @@ builder.Services.AddDbContext<PeopleDbContext>(options =>
     }
     else
     {
-        options.UseSqlServer(builder.Configuration.
-            GetConnectionString("PeopleDbConnection"));
+        var connectionStringSecretName = builder.Configuration.GetValue<string>("SecretName");        
+
+        if(connectionStringSecretName is not null)
+        {            
+            options.UseSqlServer(builder.Configuration.GetValue<string>(connectionStringSecretName));  
+        }
     }
 });
 
