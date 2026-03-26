@@ -14,7 +14,7 @@ env:
   CLUSTER_NAME: aks-people
   AKS_POOL_NODE_NAME: aks-people-agentpool
 
-jobs: 
+jobs:
   deploy:
     runs-on: ubuntu-latest
 
