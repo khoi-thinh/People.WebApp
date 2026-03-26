@@ -6,6 +6,7 @@ on:
       version:
         description: "Git tag version (e.g. v1.1)"
         required: true
+        type: string
 
 env:
   IMAGE_NAME: people.webapp
