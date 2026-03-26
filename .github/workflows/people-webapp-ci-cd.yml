@@ -7,8 +7,8 @@ on:
       
 env:
   IMAGE_NAME: people.webapp
-  ACR_NAME: people
-  ACR_LOGIN_SERVER: people.azurecr.io
+  ACR_NAME: khoitokyo
+  ACR_LOGIN_SERVER: khoitokyo.azurecr.io
 
 jobs:
   build-and-push-docker-image:
