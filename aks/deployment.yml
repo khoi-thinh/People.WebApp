@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: people-webapp-deployment
 
-spec:   # ✅ CORRECT LEVEL
+spec:  
   replicas: 2
   selector:
     matchLabels:
@@ -25,6 +25,6 @@ spec:   # ✅ CORRECT LEVEL
         - name: UseInMemoryDatabase
           value: "False"
         - name: KeyVaultName
-          value: kv-people
+          value: kv-people-khoi
         - name: ManagedIdentityClientId
           value: <MANAGED_CLIENT_ID>       
